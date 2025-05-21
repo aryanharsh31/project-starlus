@@ -1,0 +1,200 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+
+export default function RegisterScreen() {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
+
+  const handleRegister = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch('http://192.168.123.54:8000/api/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Registration failed');
+        setLoading(false);
+        return;
+      }
+      setSuccess('Registered successfully!');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    } catch (e) {
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[ '#ffb977', '#ff5fad', '#ff6a88' ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.logoContainer}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
+        </View>
+      </LinearGradient>
+      <View style={styles.form}>
+        <Text style={styles.hello}>Register</Text>
+        <Text style={styles.signInText}>Create a new account</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          placeholderTextColor="#aaa"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="john@gmail.com"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="••••••••"
+          placeholderTextColor="#aaa"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity style={styles.signInButton} onPress={handleRegister} disabled={loading}>
+          <LinearGradient
+            colors={[ '#ffb977', '#ff5fad' ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.signInButtonGradient}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signInButtonText}>REGISTER</Text>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+        {error ? (
+          <Text style={{ color: 'red', textAlign: 'center', marginBottom: 8 }}>{error}</Text>
+        ) : null}
+        {success ? (
+          <Text style={{ color: 'green', textAlign: 'center', marginBottom: 8 }}>{success}</Text>
+        ) : null}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.createAccountText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    height: 220,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 40,
+    padding: 18,
+    marginTop: Platform.OS === 'ios' ? 40 : 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  logo: {
+    width: 56,
+    height: 56,
+    resizeMode: 'contain',
+  },
+  form: {
+    flex: 1,
+    paddingHorizontal: 32,
+    marginTop: -30,
+  },
+  hello: {
+    fontSize: 38,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 8,
+    marginTop: 26,
+  },
+  signInText: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 24,
+  },
+  input: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
+    fontSize: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  signInButton: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  signInButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 24,
+  },
+  signInButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  footerText: {
+    color: '#888',
+    fontSize: 15,
+  },
+  createAccountText: {
+    color: '#ff5fad',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+}); 
