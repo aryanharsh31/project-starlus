@@ -1,0 +1,3 @@
+[submodule "starlus"]
+	path = starlus
+	url = https://github.com/arynharsh31/starlus.git
