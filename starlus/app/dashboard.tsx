@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { authFetch } from './utils/api';
-import * as SecureStore from 'expo-secure-store';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { getProfile } from './utils/api';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -16,16 +16,10 @@ export default function Dashboard() {
       setLoading(true);
       setError('');
       try {
-        const response = await authFetch('http://192.168.123.54:8000/api/profile/');
-        if (!response.ok) {
-          setError('Failed to load profile');
-          setLoading(false);
-          return;
-        }
-        const data = await response.json();
+        const data = await getProfile();
         setProfile(data);
       } catch (e) {
-        setError('Network error');
+        setError(e instanceof Error ? e.message : 'Failed to load profile');
       } finally {
         setLoading(false);
       }
@@ -38,13 +32,18 @@ export default function Dashboard() {
     router.replace('/login');
   };
 
+  const handleCreateNote = () => {
+    router.push('/notes');
+  };
+
+  const handleNotebooks = () => {
+    router.push('/notebooks');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="menu" size={32} color="#222" />
-        </TouchableOpacity>
         <Text style={styles.greeting}>
           {loading ? 'Loading...' : error ? error : `Hey  ${profile?.name || 'Student'}`}
         </Text>
@@ -59,53 +58,35 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Create Notes Button */}
+      <TouchableOpacity 
+        style={styles.createNoteButton}
+        onPress={handleCreateNote}
+      >
+        <Ionicons name="create-outline" size={24} color="#fff" style={styles.createNoteIcon} />
+        <Text style={styles.createNoteText}>Create Notes</Text>
+      </TouchableOpacity>
+
+      {/* Notebooks Button */}
+      <TouchableOpacity 
+        style={[styles.createNoteButton, { marginTop: 12 }]}
+        onPress={handleNotebooks}
+      >
+        <Ionicons name="book-outline" size={24} color="#fff" style={styles.createNoteIcon} />
+        <Text style={styles.createNoteText}>Notebooks</Text>
+      </TouchableOpacity>
+
       {/* Main Content */}
-      <View style={styles.mainRow}>
-        {/* Sidebar */}
-        <View style={styles.sidebar}>
-          <TouchableOpacity style={styles.sidebarButton}>
-            <Ionicons name="mic" size={22} color="#222" style={styles.sidebarIcon} />
-            <Text style={styles.sidebarText}>Speech to text</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarButton}>
-            <FontAwesome5 name="pen-nib" size={20} color="#222" style={styles.sidebarIcon} />
-            <Text style={styles.sidebarText}>Handwriting Recognition</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarButton}>
-            <Ionicons name="language" size={22} color="#222" style={styles.sidebarIcon} />
-            <Text style={styles.sidebarText}>Multilingual</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarButton}>
-            <Ionicons name="document-text" size={22} color="#222" style={styles.sidebarIcon} />
-            <Text style={styles.sidebarText}>Notes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarButton}>
-            <Ionicons name="calculator" size={22} color="#222" style={styles.sidebarIcon} />
-            <Text style={styles.sidebarText}>Calculator</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Main Panel */}
-        <View style={styles.panel}>
-          {/* Placeholder for main content */}
-          {loading && <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />}
-          {error ? <Text style={{ color: 'red', margin: 20 }}>{error}</Text> : null}
-          {profile && (
-            <View style={{ margin: 20 }}>
-              <Text style={{ color: '#fff', fontSize: 18 }}>Welcome, {profile.name}!</Text>
-              <Text style={{ color: '#fff', fontSize: 14, marginTop: 8 }}>Email: {profile.email}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-      {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.bottomIcon}><Ionicons name="pencil" size={22} color="#222" /></TouchableOpacity>
-        <TouchableOpacity style={styles.bottomIcon}><Ionicons name="brush" size={22} color="#222" /></TouchableOpacity>
-        <TouchableOpacity style={styles.bottomIcon}><Ionicons name="image" size={22} color="#222" /></TouchableOpacity>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.bottomNav}><Ionicons name="chevron-back" size={22} color="#222" /></TouchableOpacity>
-        <TouchableOpacity style={styles.bottomNav}><Ionicons name="add" size={22} color="#222" /></TouchableOpacity>
-        <TouchableOpacity style={styles.bottomNav}><Ionicons name="chevron-forward" size={22} color="#222" /></TouchableOpacity>
+      <View style={styles.mainContent}>
+        {loading && <ActivityIndicator color="#6ec1e4" style={{ marginTop: 20 }} />}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {profile && (
+          <View style={styles.profileInfo}>
+            <Text style={styles.welcomeText}>Welcome, {profile.name}!</Text>
+            <Text style={styles.emailText}>Email: {profile.email}</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -116,91 +97,84 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#dbeaf0',
     paddingTop: 24,
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#6ec1e4',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  menuButton: {
-    marginRight: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   greeting: {
     flex: 1,
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '600',
     color: '#222',
   },
   profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 8,
   },
   profilePic: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    marginRight: 2,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 4,
   },
-  mainRow: {
-    flex: 1,
-    flexDirection: 'row',
-    padding: 10,
-    gap: 10,
-  },
-  sidebar: {
-    width: 180,
-    backgroundColor: '#3ea6c7',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    gap: 10,
-    justifyContent: 'flex-start',
-  },
-  sidebarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#5ec6e4',
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    marginBottom: 6,
-  },
-  sidebarIcon: {
-    marginRight: 10,
-  },
-  sidebarText: {
-    color: '#222',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: '#1790a7',
-    borderRadius: 18,
-    marginLeft: 10,
-  },
-  bottomBar: {
+  createNoteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#6ec1e4',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  bottomIcon: {
-    marginRight: 10,
+  createNoteIcon: {
+    marginRight: 12,
   },
-  bottomNav: {
-    marginLeft: 10,
-    backgroundColor: '#5ec6e4',
-    borderRadius: 6,
-    padding: 4,
+  createNoteText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mainContent: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInfo: {
+    alignItems: 'center',
+  },
+  welcomeText: {
+    color: '#222',
+    fontSize: 32,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  emailText: {
+    color: '#666',
+    fontSize: 18,
+  },
+  errorText: {
+    color: '#ff5fad',
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 20,
   },
 }); 
